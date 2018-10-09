@@ -1,5 +1,10 @@
 package org.example.quiz3po3
 
+import android.app.Activity
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
@@ -16,9 +21,15 @@ class GameActivity : AppCompatActivity() {
     private var successNumber = 0
     private var failNumber = 0
 
+    private lateinit var sensorManager: SensorManager
+    private lateinit var rotationSensor: Sensor
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
+
+        sensorManager = getSystemService(Activity.SENSOR_SERVICE) as SensorManager
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
 
         /*val questions = DbProvider.getDatabase(applicationContext).questionDao().selectAll()
         Log.e("GameActivity", questions.toString())*/
@@ -33,16 +44,7 @@ class GameActivity : AppCompatActivity() {
         questionCardView.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 failNumber++
-
-                val nextQuestion = drawQuestion()
-                nextQuestion?.let {
-                    text.text = it.text
-                } ?: run {
-                    AlertDialog.Builder(GameActivity@ this)
-                            .setMessage("The end.\nSuccess: $successNumber\n Fail: $failNumber")
-                            .setNeutralButton("OK") { dialog, which -> finish() }
-                            .show()
-                }
+                handleNextQuestion()
             }
             true
         }
@@ -51,11 +53,50 @@ class GameActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         window.decorView.systemUiVisibility = SYSTEM_UI_FLAG_IMMERSIVE_STICKY or SYSTEM_UI_FLAG_FULLSCREEN or SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        sensorManager.registerListener(rotationListener, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(rotationListener)
     }
 
     fun drawQuestion(): Question? {
         val question = DbProvider.getDatabase(applicationContext).questionDao().selectRandom(usedQuestionsIds)
         question?.let { usedQuestionsIds.add(question.id) }
         return question
+    }
+
+    fun handleNextQuestion() {
+        val nextQuestion = drawQuestion()
+        nextQuestion?.let {
+            text.text = it.text
+        } ?: run {
+            AlertDialog.Builder(GameActivity@ this)
+                    .setMessage("The end.\nSuccess: $successNumber\n Fail: $failNumber")
+                    .setNeutralButton("OK") { dialog, which -> finish() }
+                    .show()
+        }
+    }
+
+    private val rotationListener = object : SensorEventListener {
+        var isChecked = false
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        }
+
+        override fun onSensorChanged(event: SensorEvent?) {
+            if (rotationSensor == event?.sensor) {
+                //Log.d("new rotation", event.values.map { it.toString() }.toString())
+                val rotation = event.values[1]
+                if (!isChecked && Math.abs(rotation) > 0.85) {
+                    isChecked = true
+                    successNumber++
+                    handleNextQuestion()
+                } else if (Math.abs(rotation) <= 0.85) {
+                    isChecked = false
+                }
+            }
+        }
     }
 }
