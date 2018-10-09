@@ -9,5 +9,5 @@ interface QuestionDao {
     fun selectAll(): List<Question>
 
     @Query("SELECT * FROM questions WHERE id NOT IN (:ids) ORDER BY RANDOM() LIMIT 1")
-    fun selectRandom(ids: Array<String>): Question?
+    fun selectRandom(ids: List<Int>): Question?
 }
