@@ -5,6 +5,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
@@ -14,6 +16,7 @@ import android.view.View.*
 import kotlinx.android.synthetic.main.activity_game.*
 import org.example.quiz3po3.db.DbProvider
 import org.example.quiz3po3.db.Question
+
 
 class GameActivity : AppCompatActivity() {
 
@@ -93,10 +96,20 @@ class GameActivity : AppCompatActivity() {
                     isChecked = true
                     successNumber++
                     handleNextQuestion()
+                    generateSound()
                 } else if (Math.abs(rotation) <= 0.85) {
                     isChecked = false
                 }
             }
+        }
+
+        fun generateSound() {
+            val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+            tg.startTone(ToneGenerator.TONE_PROP_PROMPT)
+            Thread(Runnable {
+                Thread.sleep(150)
+                tg.stopTone()
+            }).start()
         }
     }
 }
