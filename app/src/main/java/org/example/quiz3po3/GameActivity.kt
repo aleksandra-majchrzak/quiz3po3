@@ -5,8 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.media.AudioManager
-import android.media.ToneGenerator
+import android.media.SoundPool
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
@@ -18,7 +17,7 @@ import org.example.quiz3po3.db.DbProvider
 import org.example.quiz3po3.db.Question
 
 
-class GameActivity : AppCompatActivity() {
+class GameActivity : AppCompatActivity(), MyRotationListener.RotationCallback {
 
     private val usedQuestionsIds = arrayListOf<Int>()
     private var successNumber = 0
@@ -27,13 +26,23 @@ class GameActivity : AppCompatActivity() {
     private lateinit var sensorManager: SensorManager
     private lateinit var rotationSensor: Sensor
 
+    private lateinit var soundPool: SoundPool
+    private lateinit var rotationListener: MyRotationListener
+
+    private var soundId = 0
+    private var loaded = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
 
+        soundPool = SoundPool.Builder().setMaxStreams(1).build()
+        soundPool.setOnLoadCompleteListener({ _, _, _ -> loaded = true })
+        soundId = soundPool.load(this, R.raw.ok_sound, 1)
+
         sensorManager = getSystemService(Activity.SENSOR_SERVICE) as SensorManager
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
-
+        rotationListener = MyRotationListener(this, rotationSensor)
         /*val questions = DbProvider.getDatabase(applicationContext).questionDao().selectAll()
         Log.e("GameActivity", questions.toString())*/
 
@@ -82,34 +91,48 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
-    private val rotationListener = object : SensorEventListener {
-        var isChecked = false
+    override fun onRotated() {
+        successNumber++
+        handleNextQuestion()
+        generateSound2()
+    }
 
-        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        }
+    private fun generateSound2() {
+        if (loaded)
+            soundPool.play(soundId, 0.5f, 0.5f, 1, 0, 1f)
+    }
 
-        override fun onSensorChanged(event: SensorEvent?) {
-            if (rotationSensor == event?.sensor) {
-                //Log.d("new rotation", event.values.map { it.toString() }.toString())
-                val rotation = event.values[1]
-                if (!isChecked && Math.abs(rotation) > 0.85) {
-                    isChecked = true
-                    successNumber++
-                    handleNextQuestion()
-                    generateSound()
-                } else if (Math.abs(rotation) <= 0.85) {
-                    isChecked = false
-                }
+}
+
+class MyRotationListener(val callback: RotationCallback, val sensor: Sensor) : SensorEventListener {
+    var isChecked = false
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (sensor == event?.sensor) {
+            //Log.d("new rotation", event.values.map { it.toString() }.toString())
+            val rotation = event.values[1]
+            if (!isChecked && Math.abs(rotation) > 0.85) {
+                isChecked = true
+                callback.onRotated()
+            } else if (Math.abs(rotation) <= 0.85) {
+                isChecked = false
             }
         }
+    }
 
-        fun generateSound() {
-            val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-            tg.startTone(ToneGenerator.TONE_PROP_PROMPT)
-            Thread(Runnable {
-                Thread.sleep(150)
-                tg.stopTone()
-            }).start()
-        }
+    /*fun generateSound() {
+        val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        tg.startTone(ToneGenerator.TONE_PROP_PROMPT)
+        Thread(Runnable {
+            Thread.sleep(150)
+            tg.stopTone()
+        }).start()
+    }*/
+
+    interface RotationCallback {
+        fun onRotated();
     }
 }
