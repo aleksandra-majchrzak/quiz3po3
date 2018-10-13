@@ -10,9 +10,12 @@ import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View.*
 import kotlinx.android.synthetic.main.activity_game.*
+import kotlinx.android.synthetic.main.question_dialog_view.view.*
 import org.example.quiz3po3.db.DbProvider
 import org.example.quiz3po3.db.Question
 
@@ -84,9 +87,13 @@ class GameActivity : AppCompatActivity(), MyRotationListener.RotationCallback {
         nextQuestion?.let {
             text.text = it.text
         } ?: run {
+            val textLayout = LayoutInflater.from(this).inflate(R.layout.question_dialog_view, null, false)
+            textLayout.textView.text = "The end.\nSuccess: $successNumber\n Fail: $failNumber"
+            textLayout.textView.gravity = Gravity.CENTER_HORIZONTAL
             AlertDialog.Builder(GameActivity@ this)
-                    .setMessage("The end.\nSuccess: $successNumber\n Fail: $failNumber")
-                    .setNeutralButton("OK") { dialog, which -> finish() }
+                    //.setMessage("The end.\nSuccess: $successNumber\n Fail: $failNumber")
+                    .setView(textLayout)
+                    .setPositiveButton("OK") { dialog, which -> finish() }
                     .show()
         }
     }
