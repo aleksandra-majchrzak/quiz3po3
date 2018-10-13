@@ -3,20 +3,28 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/colorPrimaryDark"
     tools:context=".GameActivity">
 
     <android.support.v7.widget.CardView
         android:id="@+id/questionCardView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="20dp">
+        android:layout_margin="20dp"
+        app:cardBackgroundColor="@color/colorPrimary"
+        android:padding="5dp">
 
         <TextView
             android:id="@+id/text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:gravity="center" />
+            android:gravity="center"
+            android:textStyle="bold"
+            android:textSize="@dimen/question_text_size"
+            android:textColor="@color/colorAccent"
+            android:textAppearance="@style/Base.TextAppearance.AppCompat.Large" />
 
     </android.support.v7.widget.CardView>
 
