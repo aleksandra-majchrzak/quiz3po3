@@ -18,10 +18,12 @@ import kotlinx.android.synthetic.main.activity_game.*
 import kotlinx.android.synthetic.main.question_dialog_view.view.*
 import org.example.quiz3po3.db.DbProvider
 import org.example.quiz3po3.db.Question
+import java.util.*
 
 
 class GameActivity : AppCompatActivity(), MyRotationListener.RotationCallback {
 
+    val questions = listOf(Question(1, "LAMA W KOSMOSIE"), Question(2, "GŁODNA GODZILLA"), Question(3, "WŚCIEKŁA WIEWIÓRKA"), Question(4, "SPIDER-PIG"))
     private val usedQuestionsIds = arrayListOf<Int>()
     private var successNumber = 0
     private var failNumber = 0
@@ -39,23 +41,17 @@ class GameActivity : AppCompatActivity(), MyRotationListener.RotationCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
 
-        soundPool = SoundPool.Builder().setMaxStreams(1).build()
-        soundPool.setOnLoadCompleteListener({ _, _, _ -> loaded = true })
-        soundId = soundPool.load(this, R.raw.ok_sound, 1)
+        initSoundPool()
+        initSensors()
 
-        sensorManager = getSystemService(Activity.SENSOR_SERVICE) as SensorManager
-        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
-        rotationListener = MyRotationListener(this, rotationSensor)
-        /*val questions = DbProvider.getDatabase(applicationContext).questionDao().selectAll()
-        Log.e("GameActivity", questions.toString())*/
+        val question = questions[Random().nextInt(questions.size)]
 
-        //val questions = listOf(Question(1, "LAMA W KOSMOSIE"), Question(2, "GŁODNA GODZILLA"), Question(3, "WŚCIEKŁA WIEWIÓRKA"), Question(4, "SPIDER-PIG"))
-        //val question = questions.get(Math.abs(Random().nextInt()) % 4)
-
-        val question = drawQuestion()
+        /* Alternative - get question from database, not from predefined list. */
+        //val question = drawQuestion()
         Log.e("GameActivity", question?.toString() ?: "empty list")
         text.text = question?.text ?: ""
 
+        /* Handle click on the screen, when question is answered incorrectly. */
         questionCardView.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 failNumber++
@@ -76,12 +72,28 @@ class GameActivity : AppCompatActivity(), MyRotationListener.RotationCallback {
         sensorManager.unregisterListener(rotationListener)
     }
 
+    /** Initialize sounds played when question answered correctly. **/
+    fun initSoundPool() {
+        soundPool = SoundPool.Builder().setMaxStreams(1).build()
+        soundPool.setOnLoadCompleteListener({ _, _, _ -> loaded = true })
+        soundId = soundPool.load(this, R.raw.ok_sound, 1)
+    }
+
+    /** Initialize rotation sensor used to detect device rotation. **/
+    fun initSensors() {
+        sensorManager = getSystemService(Activity.SENSOR_SERVICE) as SensorManager
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR) ?: sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+        rotationListener = MyRotationListener(this, rotationSensor)
+    }
+
+   /** Get next random question from database. **/
     fun drawQuestion(): Question? {
         val question = DbProvider.getDatabase(applicationContext).questionDao().selectRandom(usedQuestionsIds)
         question?.let { usedQuestionsIds.add(question.id) }
         return question
     }
 
+    /** Display next question. **/
     fun handleNextQuestion() {
         val nextQuestion = drawQuestion()
         nextQuestion?.let {
@@ -98,6 +110,7 @@ class GameActivity : AppCompatActivity(), MyRotationListener.RotationCallback {
         }
     }
 
+    /* Handle device rotation - question was answered correctly. */
     override fun onRotated() {
         successNumber++
         handleNextQuestion()
@@ -117,6 +130,7 @@ class MyRotationListener(val callback: RotationCallback, val sensor: Sensor) : S
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
     }
 
+    /* Called when there is a new sensor event. */
     override fun onSensorChanged(event: SensorEvent?) {
         if (sensor == event?.sensor) {
             //Log.d("new rotation", event.values.map { it.toString() }.toString())

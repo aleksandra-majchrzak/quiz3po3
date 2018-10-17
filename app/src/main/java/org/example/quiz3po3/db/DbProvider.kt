@@ -10,7 +10,7 @@ class DbProvider {
         fun getDatabase(context: Context): QuestionDb {
             if (db == null) {
                 db = RoomAsset.databaseBuilder(context.applicationContext, QuestionDb::class.java, "quiz_3po3_db.db")
-                        .allowMainThreadQueries()   //todo shouldn't be done in production
+                        .allowMainThreadQueries()   //todo shouldn't be done in production, always call database from background thread
                         .build()
             }
             return db!!
